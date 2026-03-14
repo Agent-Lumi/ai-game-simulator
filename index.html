@@ -41,7 +41,16 @@
                 <small class="hint">Uncheck to require Ollama API only (game may freeze if API fails)</small>
             </div>
             
-            <div id="aiStatus" class="ai-status hidden">
+            <div id="thoughtBubble" class="thought-bubble hidden">
+                <div class="thought-content">
+                    <span class="thought-icon">💭</span>
+                    <div class="thought-text">
+                        <div class="thinking-label">AI is thinking...</div>
+                        <div id="thoughtStream"></div>
+                    </div>
+                </div>
+                <div class="thought-tail"></div>
+            </div>
                 <span class="status-icon">🧠</span>
                 <span class="status-text">Using Local AI (API unavailable)</span>
             </div>

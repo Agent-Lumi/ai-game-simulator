@@ -247,7 +247,7 @@ function getLocalAIMove(player) {
     return null;
 }
 
-// Try to use Ollama API (only works locally, not via https)
+// Try to use Ollama API with streaming
 async function queryOllama(player) {
     const ollamaUrl = document.getElementById('ollamaUrl').value;
     const model = document.getElementById('aiModel').value;
@@ -259,18 +259,50 @@ async function queryOllama(player) {
         let prompt = buildOllamaPrompt(player, previousAttempts);
         
         try {
+            // Show thought bubble
+            showThoughtBubble(player);
+            updateThoughtStream(`Player ${player} analyzing board...`);
+            
             const response = await fetch(`${ollamaUrl}/api/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: model,
                     prompt: prompt,
-                    stream: false
+                    stream: true
                 })
             });
             
-            const data = await response.json();
-            const text = data.response.trim();
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = '';
+            
+            // Stream the response
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.response) {
+                                fullText += data.response;
+                                updateThoughtStream(fullText);
+                            }
+                            if (data.done) break;
+                        } catch (e) {
+                            // Skip invalid JSON lines
+                        }
+                    }
+                }
+            }
+            
+            hideThoughtBubble();
+            const text = fullText.trim();
             
             // Extract number from response
             const match = text.match(/[0-8]/);
@@ -293,6 +325,7 @@ async function queryOllama(player) {
             }
             
         } catch (error) {
+            hideThoughtBubble();
             const errorMsg = error.message;
             previousAttempts.push({ move: null, error: errorMsg, text: null });
             logMessage(`AI ${player} API error (attempt ${attempt}/${maxRetries}): ${errorMsg}`);
@@ -306,6 +339,24 @@ async function queryOllama(player) {
     
     // All retries exhausted
     throw new Error(`Failed after ${maxRetries} attempts`);
+}
+
+function showThoughtBubble(player) {
+    const bubble = document.getElementById('thoughtBubble');
+    const label = bubble.querySelector('.thinking-label');
+    label.textContent = `Player ${player} is thinking...`;
+    bubble.classList.remove('hidden');
+    document.getElementById('thoughtStream').textContent = '';
+}
+
+function updateThoughtStream(text) {
+    const stream = document.getElementById('thoughtStream');
+    stream.textContent = text;
+    stream.scrollTop = stream.scrollHeight;
+}
+
+function hideThoughtBubble() {
+    document.getElementById('thoughtBubble').classList.add('hidden');
 }
 
 function buildOllamaPrompt(player, previousAttempts) {
