@@ -1,0 +1,265 @@
+// AI Game Simulator - Tic-Tac-Toe with Ollama AI
+
+let board = ['', '', '', '', '', '', '', '', ''];
+let currentPlayer = 'X';
+let gameActive = false;
+let player1Type = 'human';
+let player2Type = 'ai';
+let gameLog = [];
+let isPaused = false;
+let simulationMode = false;
+
+const winningCombos = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+    [0, 4, 8], [2, 4, 6]             // Diagonals
+];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach(cell => {
+        cell.addEventListener('click', handleCellClick);
+    });
+});
+
+function startGame() {
+    player1Type = document.getElementById('player1Type').value;
+    simulationMode = false;
+    resetGame();
+    document.getElementById('gamePanel').style.display = 'block';
+    document.getElementById('statusText').textContent = 
+        player1Type === 'human' ? 'Your turn! (X)' : 'AI thinking... (X)';
+    
+    if (player1Type === 'ai') {
+        setTimeout(() => makeAIMove('X'), 500);
+    }
+}
+
+function simulateGame() {
+    player1Type = 'ai';
+    simulationMode = true;
+    resetGame();
+    document.getElementById('gamePanel').style.display = 'block';
+    document.getElementById('statusText').textContent = 'AI vs AI Simulation!';
+    
+    // AI vs AI - Auto play
+    setTimeout(() => makeAIMove('X'), 500);
+}
+
+function resetGame() {
+    board = ['', '', '', '', '', '', '', '', ''];
+    currentPlayer = 'X';
+    gameActive = true;
+    isPaused = false;
+    gameLog = [];
+    
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.textContent = '';
+        cell.className = 'cell';
+    });
+    
+    updateTurn();
+    document.getElementById('gameLog').innerHTML = '';
+    document.getElementById('pauseBtn').textContent = '⏸️ Pause';
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
+}
+
+function handleCellClick(e) {
+    const index = parseInt(e.target.dataset.index);
+    
+    if (!gameActive || board[index] !== '' || isPaused) return;
+    
+    // Check if it's human's turn
+    if (currentPlayer === 'X' && player1Type !== 'human') return;
+    if (currentPlayer === 'O' && player2Type !== 'human') return;
+    
+    makeMove(index, currentPlayer);
+}
+
+function makeMove(index, player) {
+    board[index] = player;
+    const cell = document.querySelector(`.cell[data-index="${index}"]`);
+    cell.textContent = player;
+    cell.classList.add('taken', player.toLowerCase());
+    
+    logMove(player, index);
+    
+    if (checkWinner()) {
+        endGame(player);
+        return;
+    }
+    
+    if (checkDraw()) {
+        endGame('draw');
+        return;
+    }
+    
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    updateTurn();
+    
+    // Trigger AI if it's AI's turn
+    if (gameActive && !isPaused) {
+        if ((currentPlayer === 'X' && player1Type === 'ai') ||
+            (currentPlayer === 'O' && player2Type === 'ai')) {
+            setTimeout(() => makeAIMove(currentPlayer), 1000);
+        }
+    }
+}
+
+async function makeAIMove(player) {
+    if (!gameActive || isPaused) return;
+    
+    document.getElementById('statusText').textContent = `AI ${player} is thinking...`;
+    
+    try {
+        const move = await queryOllama(player);
+        
+        if (move !== null && board[move] === '') {
+            makeMove(move, player);
+        } else {
+            // Fallback to random move if AI fails
+            const available = board.map((c, i) => c === '' ? i : null).filter(i => i !== null);
+            if (available.length > 0) {
+                const randomMove = available[Math.floor(Math.random() * available.length)];
+                logMessage(`AI ${player} made fallback random move`);
+                makeMove(randomMove, player);
+            }
+        }
+    } catch (error) {
+        console.error('AI error:', error);
+        logMessage(`AI ${player} error: ${error.message}`);
+    }
+}
+
+async function queryOllama(player) {
+    const ollamaUrl = document.getElementById('ollamaUrl').value;
+    const model = document.getElementById('aiModel').value;
+    
+    const boardStr = formatBoardForAI();
+    const prompt = `You are playing Tic-Tac-Toe as player ${player}. 
+Current board (positions 0-8):
+${boardStr}
+
+You are ${player}. Choose the best move (0-8).
+Respond with ONLY a number 0-8 representing your move.
+Available positions: ${getAvailableMoves().join(', ')}
+
+Your move:`;
+
+    try {
+        const response = await fetch(`${ollamaUrl}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: model,
+                prompt: prompt,
+                stream: false
+            })
+        });
+        
+        const data = await response.json();
+        const text = data.response.trim();
+        
+        // Extract number from response
+        const match = text.match(/[0-8]/);
+        if (match) {
+            const move = parseInt(match[0]);
+            if (board[move] === '') {
+                return move;
+            }
+        }
+        
+        throw new Error('Invalid response');
+    } catch (error) {
+        throw error;
+    }
+}
+
+function formatBoardForAI() {
+    let str = '';
+    for (let i = 0; i < 9; i += 3) {
+        const row = board.slice(i, i + 3).map(c => c || '-').join(' ');
+        str += `${i}|${i+1}|${i+2}: ${row}\n`;
+    }
+    return str;
+}
+
+function getAvailableMoves() {
+    return board.map((c, i) => c === '' ? i : null).filter(i => i !== null);
+}
+
+function checkWinner() {
+    for (const combo of winningCombos) {
+        const [a, b, c] = combo;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            // Highlight winning cells
+            combo.forEach(i => {
+                document.querySelector(`.cell[data-index="${i}"]`).classList.add('winner');
+            });
+            return board[a];
+        }
+    }
+    return null;
+}
+
+function checkDraw() {
+    return board.every(cell => cell !== '');
+}
+
+function endGame(winner) {
+    gameActive = false;
+    
+    if (winner === 'draw') {
+        document.getElementById('statusText').textContent = '🤝 It\'s a draw!';
+        logMessage('Game ended in a draw');
+    } else {
+        document.getElementById('statusText').textContent = `🎉 Player ${winner} wins!`;
+        logMessage(`Player ${winner} wins!`);
+    }
+    
+    // Auto-restart simulation
+    if (simulationMode) {
+        setTimeout(() => {
+            logMessage('--- Starting new simulation game ---');
+            resetGame();
+            setTimeout(() => makeAIMove('X'), 1000);
+        }, 3000);
+    }
+}
+
+function updateTurn() {
+    document.getElementById('currentTurn').textContent = currentPlayer;
+    
+    if (gameActive) {
+        if (currentPlayer === 'X' && player1Type === 'human') {
+            document.getElementById('statusText').textContent = 'Your turn! (X)';
+        } else if (currentPlayer === 'O' && player2Type === 'ai') {
+            document.getElementById('statusText').textContent = 'AI thinking... (O)';
+        } else {
+            document.getElementById('statusText').textContent = `Player ${currentPlayer}'s turn`;
+        }
+    }
+}
+
+function logMove(player, index) {
+    const row = Math.floor(index / 3);
+    const col = index % 3;
+    const moveType = (player === 'X' && player1Type === 'ai') || 
+                     (player === 'O' && player2Type === 'ai') ? 'ai-move' : 'human-move';
+    logMessage(`${player} plays at position ${index} (${row},${col})`, moveType);
+}
+
+function logMessage(msg, className = '') {
+    gameLog.push(msg);
+    const logDiv = document.getElementById('gameLog');
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${className}`;
+    entry.textContent = `[${gameLog.length}] ${msg}`;
+    logDiv.appendChild(entry);
+    logDiv.scrollTop = logDiv.scrollHeight;
+}

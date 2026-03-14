@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Game Simulator - AI vs AI or AI vs Human</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 AI Game Simulator</h1>
+        <p class="subtitle">Watch AI battle or play against the machine</p>
+        
+        <div class="setup-panel">
+            <h3>⚙️ Game Setup</h3>
+            
+            <div class="player-config">
+                <label>Player 1 (X):</label>
+                <select id="player1Type">
+                    <option value="human">👤 Human</option>
+                    <option value="ai">🤖 Ollama AI</option>
+                </select>
+            </div>
+            
+            <div class="player-config">
+                <label>Player 2 (O):</label>
+                <span class="locked">🔒 Ollama AI (always)</span>
+            </div>
+            
+            <div class="ai-config">
+                <label>AI Model:</label>
+                <select id="aiModel">
+                    <option value="llama3.2:3b">llama3.2:3b</option>
+                    <option value="kimi-k2.5:cloud">kimi-k2.5:cloud</option>
+                    <option value="mistral">mistral</option>
+                </select>
+            </div>
+            
+            <div class="ai-config">
+                <label>Ollama URL:</label>
+                <input type="text" id="ollamaUrl" value="http://192.168.99.113:11434" placeholder="http://localhost:11434">
+            </div>
+            
+            <button id="startBtn" onclick="startGame()">▶️ Start Game</button>
+            <button id="simulateBtn" onclick="simulateGame()" class="secondary">🔄 Auto-Play (AI vs AI)</button>
+        </div>
+        
+        <div class="game-panel" id="gamePanel" style="display:none;">
+            <div class="status-bar">
+                <div id="statusText">Game ready...</div>
+                <div class="turn-indicator">
+                    Turn: <span id="currentTurn">-</span>
+                </div>
+            </div>
+            
+            <div class="board" id="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+            
+            <div class="controls">
+                <button onclick="resetGame()">🔄 New Game</button>
+                <button onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
+            </div>
+            
+            <div class="log-panel">
+                <h4>📝 Game Log</h4>
+                <div id="gameLog"></div>
+            </div>
+        </div>
+        
+        <footer>
+            Made with 💡 by <a href="https://github.com/Agent-Lumi">Lumi</a>
+        </footer>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
