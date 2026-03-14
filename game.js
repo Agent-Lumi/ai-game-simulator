@@ -240,6 +240,7 @@ function getLocalAIMove(player) {
 async function queryOllama(player) {
     const ollamaUrl = document.getElementById('ollamaUrl').value;
     const model = document.getElementById('aiModel').value;
+    const maxRetries = 3;
     
     const boardStr = formatBoardForAI();
     const prompt = `You are playing Tic-Tac-Toe as player ${player}. 
@@ -253,30 +254,46 @@ Respond with ONLY a number 0-8 representing your move.
 
 Your move:`;
 
-    const response = await fetch(`${ollamaUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: model,
-            prompt: prompt,
-            stream: false
-        })
-    });
-    
-    const data = await response.json();
-    const text = data.response.trim();
-    
-    // Extract number from response
-    const match = text.match(/[0-8]/);
-    if (match) {
-        const move = parseInt(match[0]);
-        if (board[move] === '') {
-            logMessage(`AI ${player} uses Ollama API`);
-            return move;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(`${ollamaUrl}/api/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: model,
+                    prompt: prompt,
+                    stream: false
+                })
+            });
+            
+            const data = await response.json();
+            const text = data.response.trim();
+            
+            // Extract number from response
+            const match = text.match(/[0-8]/);
+            if (match) {
+                const move = parseInt(match[0]);
+                if (board[move] === '') {
+                    logMessage(`AI ${player} uses Ollama API${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
+                    return move;
+                }
+            }
+            
+            // Invalid position but valid number - retry
+            logMessage(`AI ${player} returned invalid move (attempt ${attempt}/${maxRetries})`);
+            
+        } catch (error) {
+            logMessage(`AI ${player} API error (attempt ${attempt}/${maxRetries}): ${error.message}`);
+        }
+        
+        // Wait before retry
+        if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
     
-    throw new Error('Invalid API response');
+    // All retries exhausted
+    throw new Error(`Failed after ${maxRetries} attempts`);
 }
 
 function formatBoardForAI() {
