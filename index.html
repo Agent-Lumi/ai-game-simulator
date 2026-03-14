@@ -3,106 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Game Simulator - AI vs AI or AI vs Human</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Tic-Tac-Toe vs Ollama</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --text: #e4e4e7;
+            --x: #f472b6;
+            --o: #60a5fa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+        .subtitle {
+            text-align: center;
+            opacity: 0.7;
+            margin-bottom: 2rem;
+        }
+        .setup-panel {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        input, button {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        button {
+            background: var(--primary);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: var(--bg-card);
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .cell:hover:not(.taken) { border-color: var(--primary); }
+        .cell.taken { cursor: default; }
+        .cell.x { color: var(--x); }
+        .cell.o { color: var(--o); }
+        .status {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            min-height: 50px;
+        }
+        .thinking {
+            color: var(--primary);
+            font-style: italic;
+        }
+        .error {
+            color: #ef4444;
+        }
+        .winner { background: rgba(99, 102, 241, 0.3); }
+        .log {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .log div { margin: 0.2rem 0; }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 AI Game Simulator</h1>
-        <p class="subtitle">Watch AI battle or play against the machine</p>
+        <h1>❌⭕ Tic-Tac-Toe</h1>
+        <p class="subtitle">You (X) vs Ollama AI (O)</p>
         
-        <div class="setup-panel">
-            <h3>⚙️ Game Setup</h3>
+        <div id="setup" class="setup-panel">
+            <label>Ollama Model:</label>
+            <input type="text" id="model" value="llama3.2:latest" placeholder="llama3.2:latest">
             
-            <div class="player-config">
-                <label>Player 1 (X):</label>
-                <select id="player1Type">
-                    <option value="human">👤 Human</option>
-                    <option value="ai">🤖 Ollama AI</option>
-                </select>
-            </div>
+            <label>Ollama URL:</label>
+            <input type="text" id="url" value="http://192.168.99.113:11434">
             
-            <div class="player-config">
-                <label>Player 2 (O):</label>
-                <span class="locked">🔒 Ollama AI (always)</span>
-            </div>
+            <label>Timeout (seconds):</label>
+            <input type="number" id="timeout" value="30" min="10" max="120">
             
-            <div class="ai-config">
-                <label>AI Model:</label>
-                <input type="text" id="aiModel" value="llama3.2:latest" placeholder="e.g., llama3.2:latest, mistral, codellama">
-                <small class="hint">Default: llama3.2:latest (type 'local' for built-in AI)</small>
-            </div>
-            
-            <div class="ai-config checkbox-config">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="allowFallback" checked>
-                    <span>✅ Allow fallback to Local AI on API failure</span>
-                </label>
-                <small class="hint">Uncheck to require Ollama API only (game may freeze if API fails)</small>
-            </div>
-            
-            <div class="ai-config">
-                <label>AI Timeout (seconds):</label>
-                <input type="number" id="aiTimeout" value="10" min="5" max="60" step="5">
-                <small class="hint">How long to wait for Ollama before falling back to Local AI</small>
-            </div>
-            
-            <div id="thoughtBubble" class="thought-bubble hidden">
-                <div class="thought-content">
-                    <span class="thought-icon">💭</span>
-                    <div class="thought-text">
-                        <div class="thinking-label">AI is thinking...</div>
-                        <div id="thoughtStream"></div>
-                    </div>
-                </div>
-                <div class="thought-tail"></div>
-            </div>
-            
-            <div class="ai-config">
-                <label>Ollama URL:</label>
-                <input type="text" id="ollamaUrl" value="http://192.168.99.113:11434" placeholder="http://localhost:11434">
-            </div>
-            
-            <button id="startBtn" onclick="startGame()">▶️ Start Game</button>
-            <button id="simulateBtn" onclick="simulateGame()" class="secondary">🔄 Auto-Play (AI vs AI)</button>
+            <button onclick="startGame()">Start Game</button>
         </div>
         
-        <div class="game-panel" id="gamePanel" style="display:none;">
-            <div class="status-bar">
-                <div id="statusText">Game ready...</div>
-                <div class="turn-indicator">
-                    Turn: <span id="currentTurn">-</span>
-                </div>
-            </div>
+        <div id="game" class="hidden">
+            <div id="status" class="status">Your turn (X)</div>
             
             <div class="board" id="board">
-                <div class="cell" data-index="0"></div>
-                <div class="cell" data-index="1"></div>
-                <div class="cell" data-index="2"></div>
-                <div class="cell" data-index="3"></div>
-                <div class="cell" data-index="4"></div>
-                <div class="cell" data-index="5"></div>
-                <div class="cell" data-index="6"></div>
-                <div class="cell" data-index="7"></div>
-                <div class="cell" data-index="8"></div>
+                <div class="cell" data-i="0"></div>
+                <div class="cell" data-i="1"></div>
+                <div class="cell" data-i="2"></div>
+                <div class="cell" data-i="3"></div>
+                <div class="cell" data-i="4"></div>
+                <div class="cell" data-i="5"></div>
+                <div class="cell" data-i="6"></div>
+                <div class="cell" data-i="7"></div>
+                <div class="cell" data-i="8"></div>
             </div>
             
-            <div class="controls">
-                <button onclick="resetGame()">🔄 New Game</button>
-                <button onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
-            </div>
-            
-            <div class="log-panel">
-                <h4>📝 Game Log</h4>
-                <div id="gameLog"></div>
-            </div>
+            <button onclick="resetGame()">New Game</button>
+            <div id="log" class="log" style="margin-top:1rem;"></div>
         </div>
-        
-        <footer>
-            Made with 💡 by <a href="https://github.com/Agent-Lumi">Lumi</a>
-        </footer>
     </div>
-    
-    <script src="game.js"></script>
+
+    <script>
+        let board = ['','','','','','','','',''];
+        let active = false;
+        let thinking = false;
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+        document.querySelectorAll('.cell').forEach(c => {
+            c.onclick = () => humanMove(parseInt(c.dataset.i));
+        });
+
+        function startGame() {
+            if (!document.getElementById('model').value.trim()) {
+                alert('Enter Ollama model');
+                return;
+            }
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('game').classList.remove('hidden');
+            resetGame();
+        }
+
+        function resetGame() {
+            board = ['','','','','','','','',''];
+            active = true;
+            thinking = false;
+            document.querySelectorAll('.cell').forEach(c => {
+                c.textContent = '';
+                c.className = 'cell';
+            });
+            document.getElementById('log').innerHTML = '';
+            setStatus('Your turn (X)');
+        }
+
+        function humanMove(i) {
+            if (!active || thinking || board[i]) return;
+            makeMove(i, 'X');
+            if (active) setTimeout(aiMove, 500);
+        }
+
+        async function aiMove() {
+            if (!active) return;
+            thinking = true;
+            setStatus('AI thinking...', 'thinking');
+            
+            try {
+                const move = await getOllamaMove();
+                makeMove(move, 'O');
+            } catch (err) {
+                setStatus('AI failed: ' + err.message, 'error');
+                log('AI error: ' + err.message);
+            }
+            thinking = false;
+        }
+
+        async function getOllamaMove() {
+            const url = document.getElementById('url').value;
+            const model = document.getElementById('model').value;
+            const timeoutSec = parseInt(document.getElementById('timeout').value) || 30;
+            
+            const available = board.map((c,i) => c?''+i:'').filter(s=>s).join(',');
+            const taken = board.map((c,i) => c?`${i}(${c})`:'').filter(s=>s).join(', ');
+            
+            const prompt = `You are O (noughts) in Tic-Tac-Toe. Board positions 0-8:
+${formatBoard()}
+
+TAKEN (DON'T PICK): ${taken || 'none'}
+AVAILABLE (PICK ONE): ${available || 'none'}
+
+You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
+
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), timeoutSec * 1000);
+            
+            const res = await fetch(`${url}/api/generate`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({model, prompt, stream: false}),
+                signal: ctrl.signal
+            });
+            clearTimeout(timer);
+            
+            const data = await res.json();
+            const txt = data.response.trim();
+            const match = txt.match(/[0-8]/);
+            
+            if (!match) throw new Error('No valid move in response');
+            const move = parseInt(match[0]);
+            if (board[move]) throw new Error(`Position ${move} already taken`);
+            
+            log(`AI chose ${move}`);
+            return move;
+        }
+
+        function makeMove(i, player) {
+            board[i] = player;
+            const cell = document.querySelector(`.cell[data-i="${i}"]`);
+            cell.textContent = player;
+            cell.classList.add('taken', player.toLowerCase());
+            log(`${player} plays ${i}`);
+            
+            if (checkWin(player)) {
+                active = false;
+                setStatus(`${player} wins!`);
+                highlightWin(player);
+            } else if (board.every(c=>c)) {
+                active = false;
+                setStatus("Draw!");
+            } else {
+                setStatus(player === 'X' ? "AI thinking..." : "Your turn (X)");
+            }
+        }
+
+        function checkWin(p) {
+            return wins.some(w => w.every(i=> board[i]===p));
+        }
+
+        function highlightWin(p) {
+            wins.forEach(w => {
+                if (w.every(i=> board[i]===p)) {
+                    w.forEach(i=> document.querySelector(`.cell[data-i="${i}"]`).classList.add('winner'));
+                }
+            });
+        }
+
+        function formatBoard() {
+            return [0,3,6].map(r=> 
+                `${r}: ${board[r]||'_'} | ${r+1}: ${board[r+1]||'_'} | ${r+2}: ${board[r+2]||'_'}`
+            ).join('\n');
+        }
+
+        function setStatus(msg, cls) {
+            const s = document.getElementById('status');
+            s.textContent = msg;
+            s.className = 'status ' + (cls || '');
+        }
+
+        function log(msg) {
+            const d = document.getElementById('log');
+            d.innerHTML += `<div>${msg}</div>`;
+            d.scrollTop = d.scrollHeight;
+        }
+    </script>
 </body>
 </html>
