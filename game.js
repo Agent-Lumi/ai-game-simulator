@@ -360,14 +360,28 @@ function hideThoughtBubble() {
 function buildOllamaPrompt(player, previousAttempts) {
     const boardStr = formatBoardForAI();
     const availableMoves = getAvailableMoves();
+    const takenMoves = board.map((c, i) => c !== '' ? `${i} (${c})` : null).filter(i => i !== null);
     
     let prompt = `You are playing Tic-Tac-Toe as player ${player}. 
 Current board (positions 0-8):
 ${boardStr}
 
-You are ${player}. Choose the best move (0-8).
-Available positions: ${availableMoves.join(', ')}
+YOU ARE: ${player}
 `;
+    
+    if (takenMoves.length > 0) {
+        prompt += `❌ TAKEN (DO NOT PICK): ${takenMoves.join(', ')}
+`;
+    }
+    
+    prompt += `✅ AVAILABLE (PICK ONE): ${availableMoves.join(', ')}
+
+CHOOSE THE BEST MOVE (0-8) FROM AVAILABLE POSITIONS ONLY.
+`;
+    
+    if (takenMoves.length > 0) {
+        prompt += `⚠️ REMEMBER: Positions ${takenMoves.map(t => t.split(' ')[0]).join(', ')} are ALREADY TAKEN. You CANNOT pick them!\n`;
+    }
     
     // Add feedback from previous failed attempts
     if (previousAttempts.length > 0) {
@@ -394,8 +408,12 @@ Your move:`;
 function formatBoardForAI() {
     let str = '';
     for (let i = 0; i < 9; i += 3) {
-        const row = board.slice(i, i + 3).map(c => c || '-').join(' | ');
-        str += `${i} | ${i+1} | ${i+2}  →  ${row}\n`;
+        const row = board.slice(i, i + 3).map((c, idx) => {
+            const pos = i + idx;
+            const val = c || '_';
+            return `pos ${pos}: ${val}`;
+        }).join(' | ');
+        str += `${row}\n`;
     }
     return str;
 }
