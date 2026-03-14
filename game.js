@@ -93,6 +93,14 @@ function resetGame() {
 function togglePause() {
     isPaused = !isPaused;
     document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
+    
+    // If resuming and it's AI's turn, trigger AI move
+    if (!isPaused && gameActive) {
+        if ((currentPlayer === 'X' && player1Type === 'ai') ||
+            (currentPlayer === 'O' && player2Type === 'ai')) {
+            setTimeout(() => makeAIMove(currentPlayer), 500);
+        }
+    }
 }
 
 function allowFallback() {
