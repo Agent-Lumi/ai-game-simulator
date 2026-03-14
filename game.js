@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function startGame() {
-    const model = document.getElementById('aiModel').value;
+    const model = document.getElementById('aiModel').value.trim();
     if (!model) {
-        alert('⚠️ Please select an AI model first!');
+        alert('⚠️ Please enter an AI model name!');
         document.getElementById('aiModel').focus();
         return;
     }
     
     player1Type = document.getElementById('player1Type').value;
-    useAPI = model !== 'local';
+    useAPI = model.toLowerCase() !== 'local';
     simulationMode = false;
     resetGame();
     document.getElementById('gamePanel').style.display = 'block';
@@ -52,15 +52,15 @@ function startGame() {
 }
 
 function simulateGame() {
-    const model = document.getElementById('aiModel').value;
+    const model = document.getElementById('aiModel').value.trim();
     if (!model) {
-        alert('⚠️ Please select an AI model first!');
+        alert('⚠️ Please enter an AI model name!');
         document.getElementById('aiModel').focus();
         return;
     }
     
     player1Type = 'ai';
-    useAPI = model !== 'local';
+    useAPI = model.toLowerCase() !== 'local';
     simulationMode = true;
     resetGame();
     document.getElementById('gamePanel').style.display = 'block';
@@ -93,6 +93,11 @@ function resetGame() {
 function togglePause() {
     isPaused = !isPaused;
     document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
+}
+
+function allowFallback() {
+    const checkbox = document.getElementById('allowFallback');
+    return checkbox ? checkbox.checked : true;
 }
 
 function handleCellClick(e) {
@@ -153,8 +158,8 @@ async function makeAIMove(player) {
         }
     }
     
-    // Fallback to local AI
-    if (move === null || board[move] !== '') {
+    // Fallback to local AI (if allowed)
+    if ((move === null || board[move] !== '') && allowFallback()) {
         move = getLocalAIMove(player);
         // Show Local AI status notification
         const statusDiv = document.getElementById('aiStatus');
@@ -168,14 +173,20 @@ async function makeAIMove(player) {
     
     if (move !== null && board[move] === '') {
         makeMove(move, player);
-    } else {
-        // Ultimate fallback: random move
+    } else if (allowFallback()) {
+        // Ultimate fallback: random move (if allowed)
         const available = board.map((c, i) => c === '' ? i : null).filter(i => i !== null);
         if (available.length > 0) {
             const randomMove = available[Math.floor(Math.random() * available.length)];
             logMessage(`AI ${player} makes random move`);
             makeMove(randomMove, player);
         }
+    } else {
+        // No fallback allowed - game stuck
+        document.getElementById('statusText').textContent = 
+            `❌ Player ${player} failed (fallback disabled)`;
+        logMessage(`Player ${player} failed - fallback disabled, game paused`);
+        isPaused = true;
     }
 }
 

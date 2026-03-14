@@ -28,9 +28,17 @@
             </div>
             
             <div class="ai-config">
-                <label>AI Model: <span class="required">*</span></label>
-                <input type="text" id="aiModel" placeholder="e.g., llama3.2:3b, mistral, codellama" required>
-                <small class="hint">Required: Type your Ollama model name (or 'local' for built-in AI)</small>
+                <label>AI Model:</label>
+                <input type="text" id="aiModel" value="llama3.2:latest" placeholder="e.g., llama3.2:latest, mistral, codellama">
+                <small class="hint">Default: llama3.2:latest (type 'local' for built-in AI)</small>
+            </div>
+            
+            <div class="ai-config checkbox-config">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="allowFallback" checked>
+                    <span>✅ Allow fallback to Local AI on API failure</span>
+                </label>
+                <small class="hint">Uncheck to require Ollama API only (game may freeze if API fails)</small>
             </div>
             
             <div id="aiStatus" class="ai-status hidden">
