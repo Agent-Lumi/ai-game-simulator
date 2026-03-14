@@ -271,6 +271,10 @@ async function queryOllama(player) {
             showThoughtBubble(player);
             updateThoughtStream(`Analyzing board for best move...`);
             
+            // Add timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
             const response = await fetch(`${ollamaUrl}/api/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -278,8 +282,11 @@ async function queryOllama(player) {
                     model: model,
                     prompt: prompt,
                     stream: false
-                })
+                }),
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             
             const data = await response.json();
             const text = data.response.trim();
@@ -312,7 +319,12 @@ async function queryOllama(player) {
             
         } catch (error) {
             hideThoughtBubble();
-            const errorMsg = error.message;
+            let errorMsg;
+            if (error.name === 'AbortError') {
+                errorMsg = `Request timed out (10s)`;
+            } else {
+                errorMsg = error.message;
+            }
             previousAttempts.push({ move: null, error: errorMsg, text: null });
             logMessage(`AI ${player} API error (attempt ${attempt}/${maxRetries}): ${errorMsg}`);
         }
