@@ -41,6 +41,12 @@
                 <small class="hint">Uncheck to require Ollama API only (game may freeze if API fails)</small>
             </div>
             
+            <div class="ai-config">
+                <label>AI Timeout (seconds):</label>
+                <input type="number" id="aiTimeout" value="10" min="5" max="60" step="5">
+                <small class="hint">How long to wait for Ollama before falling back to Local AI</small>
+            </div>
+            
             <div id="thoughtBubble" class="thought-bubble hidden">
                 <div class="thought-content">
                     <span class="thought-icon">💭</span>
