@@ -212,8 +212,24 @@
                 console.error('[AI] Failed:', err);
                 console.error('[AI] Error type:', err.name);
                 console.error('[AI] Error message:', err.message);
+                
+                // Better error message for UI
+                let userMsg = err.message;
+                if (err.message.includes('Cannot connect')) {
+                    userMsg = '❌ Cannot connect to Ollama. Check URL.';
+                } else if (err.message.includes('timed out')) {
+                    userMsg = '⏱️ Request timed out. Increase timeout or check Ollama.';
+                } else if (err.message.includes('No valid move')) {
+                    userMsg = '🤔 AI gave invalid response. Try again.';
+                } else if (err.message.includes('already taken')) {
+                    userMsg = '⚠️ AI tried taken spot. Board changed?';
+                } else if (err.message.includes('Failed to fetch')) {
+                    userMsg = '❌ Network error. Is Ollama running?';
+                }
+                
                 setStatus('AI failed: ' + err.message, 'error');
-                log('AI error: ' + err.message);
+                log(userMsg);
+                log('Details: ' + err.message);
             }
             thinking = false;
         }
