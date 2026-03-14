@@ -182,11 +182,11 @@ async function makeAIMove(player) {
             makeMove(randomMove, player);
         }
     } else {
-        // No fallback allowed - game stuck
+        // No fallback allowed - show error but don't pause
         document.getElementById('statusText').textContent = 
-            `❌ Player ${player} failed (fallback disabled)`;
-        logMessage(`Player ${player} failed - fallback disabled, game paused`);
-        isPaused = true;
+            `❌ Player ${player} failed (fallback disabled) - waiting...`;
+        logMessage(`Player ${player} failed - fallback disabled, waiting for valid move`);
+        // Don't pause - let user retry or game continue
     }
 }
 
