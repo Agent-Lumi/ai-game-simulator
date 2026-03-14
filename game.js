@@ -8,7 +8,7 @@ let player2Type = 'ai';
 let gameLog = [];
 let isPaused = false;
 let simulationMode = false;
-let useAPI = false; // Default to local AI (no API needed)
+let useAPI = true; // Default to using API when available
 
 const winningCombos = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
@@ -23,9 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.addEventListener('click', handleCellClick);
     });
     
-    // Check if we can use API (only works if running locally, not via https)
-    const hostname = window.location.hostname;
-    useAPI = hostname === 'localhost' || hostname === '127.0.0.1';
+    // Default to API, will auto-fallback if it fails
+    useAPI = true;
 });
 
 function startGame() {
