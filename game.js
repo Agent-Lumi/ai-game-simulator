@@ -252,20 +252,12 @@ async function queryOllama(player) {
     const ollamaUrl = document.getElementById('ollamaUrl').value;
     const model = document.getElementById('aiModel').value;
     const maxRetries = 3;
+    const previousAttempts = [];
     
-    const boardStr = formatBoardForAI();
-    const prompt = `You are playing Tic-Tac-Toe as player ${player}. 
-Current board (positions 0-8):
-${boardStr}
-
-You are ${player}. Choose the best move (0-8).
-Available positions: ${getAvailableMoves().join(', ')}
-
-Respond with ONLY a number 0-8 representing your move.
-
-Your move:`;
-
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        // Build prompt with feedback from previous attempts
+        let prompt = buildOllamaPrompt(player, previousAttempts);
+        
         try {
             const response = await fetch(`${ollamaUrl}/api/generate`, {
                 method: 'POST',
@@ -287,14 +279,23 @@ Your move:`;
                 if (board[move] === '') {
                     logMessage(`AI ${player} uses Ollama API${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
                     return move;
+                } else {
+                    // Position already taken - record for next attempt
+                    const error = `Position ${move} is ALREADY TAKEN`;
+                    previousAttempts.push({ move, error, text });
+                    logMessage(`AI ${player} picked taken position ${move} (attempt ${attempt}/${maxRetries})`);
                 }
+            } else {
+                // No valid number found
+                const error = `Invalid response format`;
+                previousAttempts.push({ move: null, error, text });
+                logMessage(`AI ${player} invalid format (attempt ${attempt}/${maxRetries})`);
             }
             
-            // Invalid position but valid number - retry
-            logMessage(`AI ${player} returned invalid move (attempt ${attempt}/${maxRetries})`);
-            
         } catch (error) {
-            logMessage(`AI ${player} API error (attempt ${attempt}/${maxRetries}): ${error.message}`);
+            const errorMsg = error.message;
+            previousAttempts.push({ move: null, error: errorMsg, text: null });
+            logMessage(`AI ${player} API error (attempt ${attempt}/${maxRetries}): ${errorMsg}`);
         }
         
         // Wait before retry
@@ -305,6 +306,40 @@ Your move:`;
     
     // All retries exhausted
     throw new Error(`Failed after ${maxRetries} attempts`);
+}
+
+function buildOllamaPrompt(player, previousAttempts) {
+    const boardStr = formatBoardForAI();
+    const availableMoves = getAvailableMoves();
+    
+    let prompt = `You are playing Tic-Tac-Toe as player ${player}. 
+Current board (positions 0-8):
+${boardStr}
+
+You are ${player}. Choose the best move (0-8).
+Available positions: ${availableMoves.join(', ')}
+`;
+    
+    // Add feedback from previous failed attempts
+    if (previousAttempts.length > 0) {
+        prompt += `\n\n⚠️ PREVIOUS ATTEMPTS FAILED:\n`;
+        previousAttempts.forEach((attempt, i) => {
+            if (attempt.move !== null) {
+                prompt += `Attempt ${i + 1}: Chose position ${attempt.move} - ${attempt.error}\n`;
+            } else if (attempt.text) {
+                prompt += `Attempt ${i + 1}: Response "${attempt.text}" - ${attempt.error}\n`;
+            } else {
+                prompt += `Attempt ${i + 1}: ${attempt.error}\n`;
+            }
+        });
+        prompt += `\nPlease choose a DIFFERENT, VALID position from: ${availableMoves.join(', ')}\n`;
+    }
+    
+    prompt += `\nRespond with ONLY a number 0-8 representing your move.
+
+Your move:`;
+    
+    return prompt;
 }
 
 function formatBoardForAI() {
