@@ -247,7 +247,7 @@ function getLocalAIMove(player) {
     return null;
 }
 
-// Try to use Ollama API with streaming
+// Try to use Ollama API with thought bubbles (non-streaming)
 async function queryOllama(player) {
     const ollamaUrl = document.getElementById('ollamaUrl').value;
     const model = document.getElementById('aiModel').value;
@@ -261,7 +261,7 @@ async function queryOllama(player) {
         try {
             // Show thought bubble
             showThoughtBubble(player);
-            updateThoughtStream(`Player ${player} analyzing board...`);
+            updateThoughtStream(`Analyzing board for best move...`);
             
             const response = await fetch(`${ollamaUrl}/api/generate`, {
                 method: 'POST',
@@ -269,40 +269,18 @@ async function queryOllama(player) {
                 body: JSON.stringify({
                     model: model,
                     prompt: prompt,
-                    stream: true
+                    stream: false
                 })
             });
             
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullText = '';
+            const data = await response.json();
+            const text = data.response.trim();
             
-            // Stream the response
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (line.trim()) {
-                        try {
-                            const data = JSON.parse(line);
-                            if (data.response) {
-                                fullText += data.response;
-                                updateThoughtStream(fullText);
-                            }
-                            if (data.done) break;
-                        } catch (e) {
-                            // Skip invalid JSON lines
-                        }
-                    }
-                }
-            }
+            // Show the AI's response in thought bubble briefly
+            updateThoughtStream(text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             hideThoughtBubble();
-            const text = fullText.trim();
             
             // Extract number from response
             const match = text.match(/[0-8]/);
