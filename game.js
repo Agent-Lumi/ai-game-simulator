@@ -1,4 +1,4 @@
-// AI Game Simulator - Tic-Tac-Toe with Ollama AI
+// AI Game Simulator - Tic-Tac-Toe with Local AI + Ollama Integration
 
 let board = ['', '', '', '', '', '', '', '', ''];
 let currentPlayer = 'X';
@@ -8,6 +8,7 @@ let player2Type = 'ai';
 let gameLog = [];
 let isPaused = false;
 let simulationMode = false;
+let useAPI = false; // Default to local AI (no API needed)
 
 const winningCombos = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
@@ -21,6 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     cells.forEach(cell => {
         cell.addEventListener('click', handleCellClick);
     });
+    
+    // Check if we can use API (only works if running locally, not via https)
+    const hostname = window.location.hostname;
+    useAPI = hostname === 'localhost' || hostname === '127.0.0.1';
 });
 
 function startGame() {
@@ -106,7 +111,7 @@ function makeMove(index, player) {
     if (gameActive && !isPaused) {
         if ((currentPlayer === 'X' && player1Type === 'ai') ||
             (currentPlayer === 'O' && player2Type === 'ai')) {
-            setTimeout(() => makeAIMove(currentPlayer), 1000);
+            setTimeout(() => makeAIMove(currentPlayer), 800);
         }
     }
 }
@@ -116,26 +121,93 @@ async function makeAIMove(player) {
     
     document.getElementById('statusText').textContent = `AI ${player} is thinking...`;
     
-    try {
-        const move = await queryOllama(player);
-        
-        if (move !== null && board[move] === '') {
-            makeMove(move, player);
-        } else {
-            // Fallback to random move if AI fails
-            const available = board.map((c, i) => c === '' ? i : null).filter(i => i !== null);
-            if (available.length > 0) {
-                const randomMove = available[Math.floor(Math.random() * available.length)];
-                logMessage(`AI ${player} made fallback random move`);
-                makeMove(randomMove, player);
-            }
+    let move = null;
+    
+    // Try API first if available
+    if (useAPI) {
+        try {
+            move = await queryOllama(player);
+        } catch (error) {
+            logMessage(`API failed, using local AI`);
         }
-    } catch (error) {
-        console.error('AI error:', error);
-        logMessage(`AI ${player} error: ${error.message}`);
+    }
+    
+    // Fallback to local AI
+    if (move === null || board[move] !== '') {
+        move = getLocalAIMove(player);
+    }
+    
+    if (move !== null && board[move] === '') {
+        makeMove(move, player);
+    } else {
+        // Ultimate fallback: random move
+        const available = board.map((c, i) => c === '' ? i : null).filter(i => i !== null);
+        if (available.length > 0) {
+            const randomMove = available[Math.floor(Math.random() * available.length)];
+            logMessage(`AI ${player} makes random move`);
+            makeMove(randomMove, player);
+        }
     }
 }
 
+// Local AI - Smart without API
+function getLocalAIMove(player) {
+    const opponent = player === 'X' ? 'O' : 'X';
+    
+    // 1. Check if AI can win
+    for (const combo of winningCombos) {
+        const [a, b, c] = combo;
+        const cells = [board[a], board[b], board[c]];
+        const playerCount = cells.filter(c => c === player).length;
+        const emptyCount = cells.filter(c => c === '').length;
+        
+        if (playerCount === 2 && emptyCount === 1) {
+            const move = combo[cells.indexOf('')];
+            logMessage(`AI ${player} goes for the win!`);
+            return move;
+        }
+    }
+    
+    // 2. Block opponent from winning
+    for (const combo of winningCombos) {
+        const [a, b, c] = combo;
+        const cells = [board[a], board[b], board[c]];
+        const opponentCount = cells.filter(c => c === opponent).length;
+        const emptyCount = cells.filter(c => c === '').length;
+        
+        if (opponentCount === 2 && emptyCount === 1) {
+            const move = combo[cells.indexOf('')];
+            logMessage(`AI ${player} blocks opponent!`);
+            return move;
+        }
+    }
+    
+    // 3. Take center if available
+    if (board[4] === '') {
+        logMessage(`AI ${player} takes center`);
+        return 4;
+    }
+    
+    // 4. Take corners
+    const corners = [0, 2, 6, 8];
+    const availableCorners = corners.filter(i => board[i] === '');
+    if (availableCorners.length > 0) {
+        const move = availableCorners[Math.floor(Math.random() * availableCorners.length)];
+        logMessage(`AI ${player} takes corner`);
+        return move;
+    }
+    
+    // 5. Take any available
+    const available = board.map((c, i) => c === '' ? i : null).filter(i => i !== null);
+    if (available.length > 0) {
+        const move = available[Math.floor(Math.random() * available.length)];
+        return move;
+    }
+    
+    return null;
+}
+
+// Try to use Ollama API (only works locally, not via https)
 async function queryOllama(player) {
     const ollamaUrl = document.getElementById('ollamaUrl').value;
     const model = document.getElementById('aiModel').value;
@@ -146,45 +218,43 @@ Current board (positions 0-8):
 ${boardStr}
 
 You are ${player}. Choose the best move (0-8).
-Respond with ONLY a number 0-8 representing your move.
 Available positions: ${getAvailableMoves().join(', ')}
+
+Respond with ONLY a number 0-8 representing your move.
 
 Your move:`;
 
-    try {
-        const response = await fetch(`${ollamaUrl}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: model,
-                prompt: prompt,
-                stream: false
-            })
-        });
-        
-        const data = await response.json();
-        const text = data.response.trim();
-        
-        // Extract number from response
-        const match = text.match(/[0-8]/);
-        if (match) {
-            const move = parseInt(match[0]);
-            if (board[move] === '') {
-                return move;
-            }
+    const response = await fetch(`${ollamaUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: model,
+            prompt: prompt,
+            stream: false
+        })
+    });
+    
+    const data = await response.json();
+    const text = data.response.trim();
+    
+    // Extract number from response
+    const match = text.match(/[0-8]/);
+    if (match) {
+        const move = parseInt(match[0]);
+        if (board[move] === '') {
+            logMessage(`AI ${player} uses Ollama API`);
+            return move;
         }
-        
-        throw new Error('Invalid response');
-    } catch (error) {
-        throw error;
     }
+    
+    throw new Error('Invalid API response');
 }
 
 function formatBoardForAI() {
     let str = '';
     for (let i = 0; i < 9; i += 3) {
-        const row = board.slice(i, i + 3).map(c => c || '-').join(' ');
-        str += `${i}|${i+1}|${i+2}: ${row}\n`;
+        const row = board.slice(i, i + 3).map(c => c || '-').join(' | ');
+        str += `${i} | ${i+1} | ${i+2}  →  ${row}\n`;
     }
     return str;
 }
@@ -197,7 +267,6 @@ function checkWinner() {
     for (const combo of winningCombos) {
         const [a, b, c] = combo;
         if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-            // Highlight winning cells
             combo.forEach(i => {
                 document.querySelector(`.cell[data-index="${i}"]`).classList.add('winner');
             });
@@ -251,7 +320,7 @@ function logMove(player, index) {
     const col = index % 3;
     const moveType = (player === 'X' && player1Type === 'ai') || 
                      (player === 'O' && player2Type === 'ai') ? 'ai-move' : 'human-move';
-    logMessage(`${player} plays at position ${index} (${row},${col})`, moveType);
+    logMessage(`${player} plays at ${index} [${row},${col}]`, moveType);
 }
 
 function logMessage(msg, className = '') {
