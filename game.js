@@ -28,12 +28,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function startGame() {
+    const model = document.getElementById('aiModel').value;
+    if (!model) {
+        alert('⚠️ Please select an AI model first!');
+        document.getElementById('aiModel').focus();
+        return;
+    }
+    
     player1Type = document.getElementById('player1Type').value;
+    useAPI = model !== 'local';
     simulationMode = false;
     resetGame();
     document.getElementById('gamePanel').style.display = 'block';
     document.getElementById('statusText').textContent = 
         player1Type === 'human' ? 'Your turn! (X)' : 'AI thinking... (X)';
+    
+    // Hide Local AI status initially
+    document.getElementById('aiStatus').classList.add('hidden');
     
     if (player1Type === 'ai') {
         setTimeout(() => makeAIMove('X'), 500);
@@ -41,11 +52,22 @@ function startGame() {
 }
 
 function simulateGame() {
+    const model = document.getElementById('aiModel').value;
+    if (!model) {
+        alert('⚠️ Please select an AI model first!');
+        document.getElementById('aiModel').focus();
+        return;
+    }
+    
     player1Type = 'ai';
+    useAPI = model !== 'local';
     simulationMode = true;
     resetGame();
     document.getElementById('gamePanel').style.display = 'block';
     document.getElementById('statusText').textContent = 'AI vs AI Simulation!';
+    
+    // Hide Local AI status initially
+    document.getElementById('aiStatus').classList.add('hidden');
     
     // AI vs AI - Auto play
     setTimeout(() => makeAIMove('X'), 500);
@@ -134,6 +156,14 @@ async function makeAIMove(player) {
     // Fallback to local AI
     if (move === null || board[move] !== '') {
         move = getLocalAIMove(player);
+        // Show Local AI status notification
+        const statusDiv = document.getElementById('aiStatus');
+        if (statusDiv) {
+            statusDiv.classList.remove('hidden');
+            statusDiv.querySelector('.status-text').textContent = 
+                `Player ${player} using Local AI (API unavailable or failed)`;
+        }
+        logMessage(`Player ${player} switched to Local AI`);
     }
     
     if (move !== null && board[move] === '') {

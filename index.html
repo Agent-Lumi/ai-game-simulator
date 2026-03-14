@@ -28,12 +28,20 @@
             </div>
             
             <div class="ai-config">
-                <label>AI Model:</label>
-                <select id="aiModel">
+                <label>AI Model: <span class="required">*</span></label>
+                <select id="aiModel" required>
+                    <option value="" disabled selected>-- Select a model --</option>
                     <option value="llama3.2:3b">llama3.2:3b</option>
                     <option value="kimi-k2.5:cloud">kimi-k2.5:cloud</option>
                     <option value="mistral">mistral</option>
+                    <option value="local">🧠 Local AI (no API needed)</option>
                 </select>
+                <small class="hint">Required: Choose your Ollama model or use Local AI</small>
+            </div>
+            
+            <div id="aiStatus" class="ai-status hidden">
+                <span class="status-icon">🧠</span>
+                <span class="status-text">Using Local AI (API unavailable)</span>
             </div>
             
             <div class="ai-config">
