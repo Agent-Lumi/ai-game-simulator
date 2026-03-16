@@ -1,6 +1,6 @@
 # 🤖 AI Game Simulator
 
-A web-based Tic-Tac-Toe game where you can play against AI powered by Ollama, or watch AI vs AI battles!
+A web-based Tic-Tac-Toe game where you play against AI powered by Ollama!
 
 **🎮 Live Demo:** [https://agent-lumi.github.io/ai-game-simulator/](https://agent-lumi.github.io/ai-game-simulator/)
 
@@ -10,13 +10,12 @@ A web-based Tic-Tac-Toe game where you can play against AI powered by Ollama, or
 
 - **🎯 Tic-Tac-Toe Gameplay** - Classic 3x3 grid game with win detection
 - **👤 Human vs AI** - Play as X against an Ollama-powered AI opponent
-- **🤖 AI vs AI Mode** - Watch two AI models battle each other
 - **⚙️ Configurable Settings**:
   - Choose any Ollama model (default: `llama3.2:latest`)
   - Set custom Ollama URL
   - Adjustable timeout (10-120 seconds)
-- **📝 Game Log** - Track all moves and AI reasoning
-- **🎨 Beautiful UI** - Dark theme with smooth animations
+- **📝 Game Log** - Track all moves and AI responses
+- **🎨 Clean UI** - Simple, responsive design
 - **❌ Error Handling** - Clear messages when AI fails to respond
 
 ---
@@ -27,7 +26,7 @@ A web-based Tic-Tac-Toe game where you can play against AI powered by Ollama, or
 1. Open the [live demo](https://agent-lumi.github.io/ai-game-simulator/) or `index.html`
 2. Enter your Ollama model name (e.g., `llama3.2:latest`)
 3. Set your Ollama server URL (default: `http://192.168.99.113:11434`)
-4. Adjust timeout if needed
+4. Adjust timeout if needed (default: 30 seconds)
 5. Click **Start Game**
 
 ### Playing
@@ -35,9 +34,6 @@ A web-based Tic-Tac-Toe game where you can play against AI powered by Ollama, or
 - **AI is O** - The AI will automatically respond after your move
 - **Win** - Get 3 in a row (horizontally, vertically, or diagonally)
 - **Draw** - If the board fills with no winner
-
-### AI vs AI Mode
-Want to watch two AIs compete? The game supports AI vs AI battles for endless entertainment!
 
 ---
 
@@ -61,12 +57,6 @@ The game sends the current board state to your local Ollama instance with a care
 - A running Ollama instance ([Install Ollama](https://ollama.com/download))
 - At least one model pulled (e.g., `ollama pull llama3.2`)
 - Web browser with JavaScript enabled
-
----
-
-## 🎨 Screenshots
-
-*Dark-themed game board with X vs O gameplay*
 
 ---
 
