@@ -943,3 +943,14 @@ You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
     </script>
 </body>
 </html>
+<script>
+// Request notification permission
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+function notify(title, body) {
+    if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+    }
+}
+</script>
