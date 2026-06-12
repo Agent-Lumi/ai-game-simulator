@@ -898,6 +898,35 @@ You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
             d.innerHTML += `<div>${msg}</div>`;
             d.scrollTop = d.scrollHeight;
         }
+
+        // Share functionality - Added by auto-builder
+        const shareBtn = document.createElement('button');
+        shareBtn.textContent = '🔗 Share Result';
+        shareBtn.className = 'btn-secondary';
+        shareBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 24px;background:#6366f1;color:white;border:none;border-radius:25px;cursor:pointer;z-index:1000;font-weight:600;box-shadow:0 4px 12px rgba(99,102,241,0.4);';
+        shareBtn.onclick = async () => {
+            const stats = JSON.parse(localStorage.getItem('ttt-stats') || '{"wins":0,"losses":0,"draws":0,"total":0}');
+            const shareText = `🎮 Tic-Tac-Toe vs AI\n🏆 Wins: ${stats.wins} | 🤖 Losses: ${stats.losses} | 🤝 Draws: ${stats.draws}\n📊 Total Games: ${stats.total}\n\nPlay against Ollama AI!`;
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Tic-Tac-Toe vs Ollama AI',
+                        text: shareText,
+                        url: location.href
+                    });
+                    showToast('Shared successfully! 🎉', 'success');
+                } catch (err) {
+                    console.log('Share cancelled');
+                }
+            } else {
+                navigator.clipboard.writeText(shareText + '\n\n' + location.href);
+                shareBtn.textContent = '✅ Copied!';
+                showToast('Stats copied to clipboard! 📋', 'success');
+                setTimeout(() => shareBtn.textContent = '🔗 Share Result', 2000);
+            }
+        };
+        document.body.appendChild(shareBtn);
     </script>
 </body>
 </html>
