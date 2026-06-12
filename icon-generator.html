@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Generator - TTT AI</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0f0f1a;
+            color: #e4e4e7;
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 { color: #6366f1; }
+        .icon-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        .icon-box {
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        button:hover { opacity: 0.9; }
+        .note {
+            opacity: 0.7;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 PWA Icon Generator</h1>
+    <p>Generate icons for the Tic-Tac-Toe vs AI PWA</p>
+    
+    <div class="icon-container" id="iconContainer"></div>
+    
+    <button onclick="downloadAll()">📦 Download All Icons</button>
+    
+    <p class="note">
+        This tool generates PNG icons in all sizes needed for the PWA manifest.<br>
+        Run this file locally to generate and download the icons.
+    </p>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const container = document.getElementById('iconContainer');
+
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(1, '#0f0f1a');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Border
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = size / 32;
+            ctx.strokeRect(size/32, size/32, size - size/16, size - size/16);
+            
+            // Grid lines
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = size / 64;
+            const cellSize = size / 3.5;
+            const offset = size / 7;
+            
+            // Vertical lines
+            ctx.beginPath();
+            ctx.moveTo(offset + cellSize, offset);
+            ctx.lineTo(offset + cellSize, size - offset);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(offset + cellSize * 2, offset);
+            ctx.lineTo(offset + cellSize * 2, size - offset);
+            ctx.stroke();
+            
+            // Horizontal lines
+            ctx.beginPath();
+            ctx.moveTo(offset, offset + cellSize);
+            ctx.lineTo(size - offset, offset + cellSize);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(offset, offset + cellSize * 2);
+            ctx.lineTo(size - offset, offset + cellSize * 2);
+            ctx.stroke();
+            
+            // X mark (top-left to bottom-right of first cell)
+            ctx.strokeStyle = '#f472b6';
+            ctx.lineWidth = size / 20;
+            ctx.lineCap = 'round';
+            
+            const cx1 = offset + cellSize / 2;
+            const cy1 = offset + cellSize / 2;
+            const markSize = cellSize / 3;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx1 - markSize, cy1 - markSize);
+            ctx.lineTo(cx1 + markSize, cy1 + markSize);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(cx1 + markSize, cy1 - markSize);
+            ctx.lineTo(cx1 - markSize, cy1 + markSize);
+            ctx.stroke();
+            
+            // O mark (center cell)
+            const cx2 = offset + cellSize * 1.5;
+            const cy2 = offset + cellSize * 1.5;
+            
+            ctx.strokeStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.arc(cx2, cy2, markSize, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        sizes.forEach(size => {
+            const box = document.createElement('div');
+            box.className = 'icon-box';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            canvas.id = `icon-${size}`;
+            
+            drawIcon(canvas, size);
+            
+            const label = document.createElement('div');
+            label.textContent = `${size}x${size}`;
+            
+            const btn = document.createElement('button');
+            btn.textContent = '💾 Download';
+            btn.onclick = () => downloadIcon(size);
+            
+            box.appendChild(canvas);
+            box.appendChild(label);
+            box.appendChild(btn);
+            container.appendChild(box);
+        });
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`icon-${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function downloadAll() {
+            sizes.forEach((size, index) => {
+                setTimeout(() => downloadIcon(size), index * 200);
+            });
+        }
+    </script>
+</body>
+</html>
