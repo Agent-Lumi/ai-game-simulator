@@ -391,6 +391,22 @@
                 <div class="stat-label">Current Streak</div>
                 <div class="streak-value" id="statStreak">-</div>
             </div>
+            <div style="margin: 1rem 0; padding: 0.75rem; background: var(--bg); border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.9rem;">🔊 Sound Effects</span>
+                <button id="soundToggle" onclick="toggleSound()" style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.8rem; margin: 0;">ON</button>
+            </div>
+            <script>
+                // Initialize sound toggle button state
+                document.addEventListener('DOMContentLoaded', () => {
+                    const btn = document.getElementById('soundToggle');
+                    if (btn) btn.textContent = AudioFX.enabled ? '🔊 ON' : '🔇 OFF';
+                });
+                function toggleSound() {
+                    const enabled = AudioFX.toggle();
+                    document.getElementById('soundToggle').textContent = enabled ? '🔊 ON' : '🔇 OFF';
+                    showToast(enabled ? 'Sound effects enabled 🔊' : 'Sound effects muted 🔇');
+                }
+            </script>
             <div class="button-row">
                 <button onclick="showHistory()" class="btn-secondary">📜 View History</button>
                 <button onclick="resetStats()" class="btn-danger">🗑️ Reset</button>
@@ -452,6 +468,97 @@
     
     <!-- Toast Container -->
     <div id="toast" class="toast"></div>
+    
+    <!-- Sound Effects (Audio Context) -->
+    <script>
+    // Sound Effects Feature - Added by auto-builder
+    const AudioFX = {
+        ctx: null,
+        enabled: true,
+        
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return this.ctx !== null;
+        },
+        
+        playTone(freq, duration, type = 'sine', volume = 0.3) {
+            if (!this.enabled || !this.init()) return;
+            
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            
+            osc.frequency.value = freq;
+            osc.type = type;
+            gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+            
+            osc.start(this.ctx.currentTime);
+            osc.stop(this.ctx.currentTime + duration);
+        },
+        
+        playMove() {
+            // Subtle click sound
+            this.playTone(800, 0.1, 'sine', 0.15);
+        },
+        
+        playWin() {
+            // Victory fanfare (ascending)
+            this.playTone(440, 0.15, 'square', 0.2);
+            setTimeout(() => this.playTone(554, 0.15, 'square', 0.2), 150);
+            setTimeout(() => this.playTone(659, 0.3, 'square', 0.25), 300);
+        },
+        
+        playLose() {
+            // Defeat sound (descending)
+            this.playTone(330, 0.2, 'sawtooth', 0.2);
+            setTimeout(() => this.playTone(277, 0.2, 'sawtooth', 0.2), 200);
+            setTimeout(() => this.playTone(220, 0.4, 'sawtooth', 0.25), 400);
+        },
+        
+        playDraw() {
+            // Neutral draw sound
+            this.playTone(440, 0.3, 'sine', 0.2);
+        },
+        
+        playError() {
+            // Error buzz
+            this.playTone(150, 0.3, 'sawtooth', 0.3);
+        },
+        
+        playClick() {
+            // UI click
+            this.playTone(1200, 0.05, 'sine', 0.1);
+        },
+        
+        toggle() {
+            this.enabled = !this.enabled;
+            localStorage.setItem('ttt-sound-enabled', this.enabled);
+            return this.enabled;
+        },
+        
+        loadPreference() {
+            const saved = localStorage.getItem('ttt-sound-enabled');
+            if (saved !== null) {
+                this.enabled = saved === 'true';
+            }
+        }
+    };
+    
+    // Load sound preference on startup
+    AudioFX.loadPreference();
+    
+    // Initialize audio context on first user interaction
+    function initAudio() {
+        AudioFX.init();
+    }
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('keydown', initAudio, { once: true });
+    </script>
 
     <script>
         // Game State
@@ -713,7 +820,11 @@
         }
 
         function humanMove(i) {
-            if (!active || thinking || board[i]) return;
+            if (!active || thinking || board[i]) {
+                // Play error sound if cell is taken or game not active
+                if (board[i]) AudioFX.playError();
+                return;
+            }
             makeMove(i, 'X');
             if (active) setTimeout(aiMove, 500);
         }
@@ -855,6 +966,9 @@ You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
             cell.removeAttribute('tabindex');
             log(`${player} plays ${i}`);
             
+            // Play move sound
+            AudioFX.playMove();
+            
             // Record move
             currentGameMoves.push({ player: player, pos: i });
             
@@ -867,6 +981,13 @@ You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
                 highlightWin(player);
                 showToast(`${player === 'X' ? 'You win! 🎉' : 'AI wins! 🤖'}`, player === 'X' ? 'success' : 'info');
                 
+                // Play win/lose sound
+                if (player === 'X') {
+                    AudioFX.playWin();
+                } else {
+                    AudioFX.playLose();
+                }
+                
                 // Record game result
                 const result = player === 'X' ? 'win' : 'loss';
                 recordGame(result, currentGameMoves);
@@ -874,6 +995,9 @@ You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
                 active = false;
                 setStatus("Draw!");
                 showToast('Draw game! 🤝');
+                
+                // Play draw sound
+                AudioFX.playDraw();
                 
                 // Record draw
                 recordGame('draw', currentGameMoves);
@@ -918,6 +1042,9 @@ You are O. Pick ONE number from AVAILABLE. Respond ONLY with the number.`;
         shareBtn.className = 'btn-secondary';
         shareBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 24px;background:#6366f1;color:white;border:none;border-radius:25px;cursor:pointer;z-index:1000;font-weight:600;box-shadow:0 4px 12px rgba(99,102,241,0.4);';
         shareBtn.onclick = async () => {
+            // Play click sound
+            AudioFX.playClick();
+            
             const stats = JSON.parse(localStorage.getItem('ttt-stats') || '{"wins":0,"losses":0,"draws":0,"total":0}');
             const shareText = `🎮 Tic-Tac-Toe vs AI\n🏆 Wins: ${stats.wins} | 🤖 Losses: ${stats.losses} | 🤝 Draws: ${stats.draws}\n📊 Total Games: ${stats.total}\n\nPlay against Ollama AI!`;
             

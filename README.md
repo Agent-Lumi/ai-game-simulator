@@ -14,6 +14,7 @@ A web-based Tic-Tac-Toe game where you play against AI powered by Ollama!
 - **📜 Game History** - Review past games and move sequences
 - **⌨️ Keyboard Shortcuts** - Play with keys 1-9, N for new game, H for history
 - **🔔 Toast Notifications** - Visual feedback for actions and errors
+- **🔊 Sound Effects** - Audio feedback for moves, wins, losses, and draws (toggleable)
 - **⚙️ Configurable Settings**:
   - Choose any Ollama model (default: `llama3.2:latest`)
   - Set custom Ollama URL
@@ -41,6 +42,16 @@ A web-based Tic-Tac-Toe game where you play against AI powered by Ollama!
 - **Win** - Get 3 in a row (horizontally, vertically, or diagonally)
 - **Draw** - If the board fills with no winner
 
+### Sound Effects
+Toggle sound effects in the stats panel:
+- 🎵 **Move sounds** - Subtle click when placing marks
+- 🎉 **Win sound** - Victory fanfare when you win
+- 😢 **Lose sound** - Descending tone when AI wins  
+- 🤝 **Draw sound** - Neutral tone for draw games
+- ❌ **Error sound** - Alert when clicking invalid moves
+
+Sound preferences are saved automatically.
+
 ### Keyboard Shortcuts
 | Key | Action |
 |-----|--------|
@@ -58,7 +69,8 @@ A web-based Tic-Tac-Toe game where you play against AI powered by Ollama!
 - **AI Backend**: [Ollama](https://ollama.com/) - Local LLM runner
 - **Models**: Compatible with any Ollama model (llama3.2, mistral, etc.)
 - **PWA**: Service Worker, Web Manifest, Offline Support
-- **Storage**: LocalStorage for stats and history
+- **Storage**: LocalStorage for stats, history, and sound preferences
+- **Audio**: Web Audio API for sound effects
 - **Deployment**: GitHub Pages
 
 ### Ollama Integration
@@ -168,4 +180,4 @@ Open source - feel free to fork and modify!
 
 ---
 
-*Last updated by Auto-Builder on 2026-06-12*
+*Last updated by Auto-Builder on 2026-06-14*
